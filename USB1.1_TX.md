@@ -33,8 +33,8 @@ USB1.1 Output Buffer Spec.
 - Input Threshold: 0.6 V
 - Output high level: 3.3 V
 - Output low level: 0 V
-- Rise time: 12 ns
-- Fall time: 12 ns
+- Rise time: 12 ns (10%-90%)
+- Fall time: 12 ns (90%-10%)
 - Output impedance: 36 Ω
 - Ouput capacitor loading: 50pF
 
