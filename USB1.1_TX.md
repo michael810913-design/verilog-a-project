@@ -18,22 +18,25 @@ USB 1.1 Full-Speed TX design targets:
 | Fall Time | 12 ns |
 | Output Loading | 50 pF |
 
-## 3. Input Data
+## 3. USB11_input.va
 
 USB1.1 Input Data Spec.
 
-- PRBS 
+- PRBS7 data and data rate 12Mbps
+- Output high level: 1.2 V
+- Output low level: 0 V
 
-## 4. Design Concept 測試
+## 4. USB11_buf.va
 
-The output driver contains:
+USB1.1 Output Buffer Spec.
 
-1. PMOS pull-up driver
-2. NMOS pull-down driver
-3. Output resistance trimming circuit
+- Input Threshold: 0.6 V
+- Output high level: 3.3 V
+- Output low level: 0 V
+- Rise time: 12 ns
+- Fall time: 12 ns
+- Output impedance: 36 Ω
+- Ouput capacitor loading: 50pF
 
-The main goal is to achieve:
 
-- Good rise/fall matching
-- Proper output impedance
-- Stable crossing point
+
