@@ -13,8 +13,8 @@ USB 1.1 Full-Speed TX design targets:
 
 | Parameter | Target |
 |---|---:|
-| Rise Time | 4 ns |
-| Fall Time | 4 ns |
+| Rise Time | 12 ns |
+| Fall Time | 12 ns |
 | Loading | 50 pF |
 
 ## 3. Design Concept
