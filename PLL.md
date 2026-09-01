@@ -1,24 +1,8 @@
 # PLL
 
-## 1. Overview
-
-PLL (Phase-Locked Loop) is a feedback system used to lock the phase and frequency of an output clock to a reference clock.
-
-PLL is widely used in:
-
-- Clock generation
-- Clock multiplication
-- Clock recovery
-- Frequency synthesis
-- Jitter filtering
-- High-speed interface systems
-
----
-
-## 2. Basic Architecture
+## 1. Basic Architecture
 
 A typical PLL contains:
-
 - Phase/Frequency Detector (PFD)
 - Charge Pump (CP)
 - Loop Filter (LF)
