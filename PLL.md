@@ -3,6 +3,7 @@
 ## 1. Basic Architecture
 
 A typical PLL contains:
+
 - Phase/Frequency Detector (PFD)
 - Charge Pump (CP)
 - Loop Filter (LF)
