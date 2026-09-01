@@ -6,8 +6,9 @@
 USB 1.1 Full-Speed TX design targets:
 
 - Data Rate: **12 Mbps**
-- Output Resistance: **31 ~ 41 Ω**
-- Typical Target: **36 Ω**
+- Output Resistance: **36 Ω**
+- Output High: **3.3 V**
+- Output Low: **0 V**
 
 ## 2. Rise / Fall Time
 
@@ -15,9 +16,15 @@ USB 1.1 Full-Speed TX design targets:
 |---|---:|
 | Rise Time | 12 ns |
 | Fall Time | 12 ns |
-| Loading | 50 pF |
+| Output Loading | 50 pF |
 
-## 3. Design Concept
+## 3. Input Data
+
+USB1.1 Input Data Spec.
+
+- PRBS 
+
+## 4. Design Concept 測試
 
 The output driver contains:
 
