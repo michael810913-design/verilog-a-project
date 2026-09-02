@@ -37,6 +37,3 @@ USB1.1 Output Buffer Spec.
 - Fall time: 12 ns
 - Output impedance: 36 Ω
 - Output loading: 50pF
-
-
-
