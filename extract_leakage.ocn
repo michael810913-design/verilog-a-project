@@ -1,0 +1,139 @@
+; Extract only currents listed in leakage_targets.csv from a Spectre PSF result.
+; Configuration is supplied by run_extract.py through LEAKAGE_* environment vars.
+
+procedure(leakageParseNumber(text)
+  let((suffix scale number)
+    suffix=substring(text strlen(text) 1)
+    scale=cond((suffix=="p" 1e-12) (suffix=="n" 1e-9)
+               (suffix=="u" 1e-6) (suffix=="m" 1e-3)
+               (suffix=="k" 1e3) (suffix=="M" 1e6) (t 1.0))
+    number=if(scale==1.0 then atof(text) else atof(substring(text 1 strlen(text)-1)))
+    number*scale
+  )
+)
+
+; Results Browser displays vector instances as B1<0>, but some OCEAN/PSF
+; releases require the angle brackets to be escaped in a getData() key.
+procedure(leakageEscapeVectorName(text)
+  let((escaped character index)
+    escaped=""
+    for(index 1 strlen(text)
+      character=substring(text index 1)
+      escaped=strcat(escaped
+        cond((character=="<" "\\<")
+             (character==">" "\\>")
+             (t character)))
+    )
+    escaped
+  )
+)
+
+procedure(leakageExtract()
+  let((psf targets output mode time start stop in out line fields signal wave result
+       hierarchy escapedHierarchy escapedSignal terminalIndex fallbackSignal
+       escapedFallbackSignal missingCount xVector sampleCount waveStart waveStop)
+    psf=getShellEnvVar("LEAKAGE_PSF")
+  targets=getShellEnvVar("LEAKAGE_TARGETS")
+  output=getShellEnvVar("LEAKAGE_OUTPUT")
+  mode=getShellEnvVar("LEAKAGE_MODE")
+  missingCount=0
+  when(null(psf) || null(targets) || null(output)
+    error("LEAKAGE_PSF, LEAKAGE_TARGETS, and LEAKAGE_OUTPUT are required\n"))
+  when(mode=="time" time=leakageParseNumber(getShellEnvVar("LEAKAGE_TIME")))
+  when(mode=="average"
+    start=leakageParseNumber(getShellEnvVar("LEAKAGE_START"))
+    stop=leakageParseNumber(getShellEnvVar("LEAKAGE_STOP")))
+
+  openResults(psf)
+  selectResult('tran)
+  in=infile(targets)
+  out=outfile(output "w")
+  fprintf(out "level,hierarchy,cell,supply_terminal,current_A\n")
+  gets(line in) ; CSV header
+  while(gets(line in)
+    fields=parseString(car(parseString(line "\n")) ",")
+    when(length(fields)>=4
+      hierarchy=nth(1 fields)
+      escapedHierarchy=leakageEscapeVectorName(hierarchy)
+      signal=strcat(hierarchy ":" nth(3 fields))
+      escapedSignal=strcat(escapedHierarchy ":" nth(3 fields))
+      wave=getData(signal ?result "tran")
+      ; Try the escaped formal-name key before changing to a terminal ordinal.
+      when(null(wave) && escapedSignal!=signal
+        wave=getData(escapedSignal ?result "tran")
+        unless(null(wave)
+          fprintf(stdout "INFO: waveform %s resolved as escaped PSF signal %s\n"
+                  signal escapedSignal))
+      )
+      ; Some PSF releases store vector-instance terminal currents by ordinal
+      ; (Top.B1<0>:1) although the save used the formal name
+      ; (Top.B1<0>:VDDA). Column 6 contains the verified 1-based pin position.
+      when(null(wave) && length(fields)>=6
+        terminalIndex=nth(5 fields)
+        fallbackSignal=strcat(hierarchy ":" terminalIndex)
+        escapedFallbackSignal=strcat(escapedHierarchy ":" terminalIndex)
+        wave=getData(fallbackSignal ?result "tran")
+        unless(null(wave)
+          fprintf(stdout "INFO: waveform %s resolved as PSF signal %s\n"
+                  signal fallbackSignal))
+      )
+      ; Vector instances may require both the ordinal and escaped brackets.
+      when(null(wave) && length(fields)>=6 && escapedFallbackSignal!=fallbackSignal
+        wave=getData(escapedFallbackSignal ?result "tran")
+        unless(null(wave)
+          fprintf(stdout "INFO: waveform %s resolved as escaped ordinal PSF signal %s\n"
+                  signal escapedFallbackSignal))
+      )
+      if(null(wave) then
+        if(length(fields)>=6 then
+          fprintf(stderr "WARNING: waveform %s not found; tried %s, %s, and %s in tran result\n"
+                  signal escapedSignal fallbackSignal escapedFallbackSignal)
+        else
+          fprintf(stderr "WARNING: waveform %s not found in tran result; regenerate leakage_targets.csv to enable terminal-index fallback\n"
+                  signal))
+        missingCount=missingCount+1
+      else
+        ; clip() can silently clamp a requested window to the available data.
+        ; Reject that case so a ranking is never generated from the wrong range.
+        xVector=drGetWaveformXVec(wave)
+        sampleCount=drVectorLength(xVector)
+        when(sampleCount<1
+          error("ERROR: waveform %s contains no time samples\n" signal))
+        waveStart=drGetElem(xVector 0)
+        waveStop=drGetElem(xVector sampleCount-1)
+        when(mode=="average" && (start<waveStart || stop>waveStop)
+          error(strcat("ERROR: average window %.15g to %.15g s is outside "
+                       "waveform %s range %.15g to %.15g s\n")
+                start stop signal waveStart waveStop))
+        when(mode=="time" && (time<waveStart || time>waveStop)
+          error(strcat("ERROR: requested time %.15g s is outside waveform %s "
+                       "range %.15g to %.15g s\n")
+                time signal waveStart waveStop))
+        result=if(mode=="time" then value(wave time)
+                  else average(clip(wave start stop)))
+        fprintf(out "%s,%s,%s,%s,%.15g\n"
+                nth(0 fields) nth(1 fields) nth(2 fields) nth(3 fields) result)
+      )
+    )
+  )
+    close(in)
+    close(out)
+    when(missingCount>0
+      error("ERROR: %d target waveform(s) were not found; refusing to rank a partial hierarchy\n"
+            missingCount))
+    t
+  )
+)
+
+; A top-level error while loading an OCEAN file normally returns to the
+; interactive ">" prompt. Catch it and explicitly terminate OCEAN so the GUI
+; cannot wait forever after a range or SKILL error.
+let((status)
+  status=errset(leakageExtract() t)
+  if(status then
+    exit(0)
+  else
+    fprintf(stderr "ERROR: leakage extraction aborted; OCEAN is exiting\n")
+    exit(1)
+  )
+)
