@@ -1,0 +1,30 @@
+simulator lang=spectre
+global 0
+
+subckt C1 (AVDD VSS IN OUT)
+R1 (AVDD VSS) resistor r=1G
+ends C1
+subckt C2 (VPWR VSS IN OUT)
+R1 (VPWR VSS) resistor r=1G
+ends C2
+subckt C3 VDD VSS IN OUT
+R1 (VDD VSS) resistor r=1G
+ends C3
+subckt C4 (VDDA VSS IN OUT)
+R1 (VDDA VSS) resistor r=1G
+ends C4
+subckt B1 (VDD VSS IN OUT)
+IC1 (VDD VSS IN OUT) C1
+IC2 (VDD VSS IN OUT) C2 param=1
+IC3 (VDD VSS IN OUT) C3
+ends B1
+subckt B2 (AVDD VSS IN OUT)
+IC4 (AVDD VSS IN OUT) C4
+ends B2
+subckt A (VDD12 VSS DATA OUT)
+IB1 (VDD12 VSS DATA OUT) B1
+IB2 (VDD12 VSS DATA OUT) \
+  B2 foo=2
+ends A
+
+IA (VDD12 0 DATA OUT) A
